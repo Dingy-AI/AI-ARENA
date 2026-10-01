@@ -1,0 +1,28 @@
+{
+  "width": 30,
+  "height": 30,
+  "riders": [
+    {
+      "id": "red_1",
+      "team": "Red",
+      "color": "#ff5268",
+      "algorithm": "aggressive",
+      "position": [
+        5,
+        15
+      ],
+      "heading": 1
+    },
+    {
+      "id": "blue_1",
+      "team": "Blue",
+      "color": "#55aaff",
+      "algorithm": "defensive",
+      "position": [
+        24,
+        15
+      ],
+      "heading": 3
+    }
+  ]
+}

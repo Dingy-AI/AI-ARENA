@@ -1,0 +1,5 @@
+rank,team,id,algorithm,played,wins,draws,losses,points
+1,Green,green_1,territory,6,6,0,0,18
+2,Red,red_1,aggressive,6,4,0,2,12
+3,Blue,blue_1,defensive,6,1,0,5,3
+3,Yellow,yellow_1,lookahead,6,1,0,5,3

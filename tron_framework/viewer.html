@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Arena · Tron Duel</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080d18;color:#eef4ff;font:16px system-ui;text-align:center;padding:24px}h1{letter-spacing:.18em;font-size:24px;margin:8px}p{color:#9baec9}canvas{display:block;background:#101929;width:min(90vw,720px);height:auto;margin:20px auto;border:1px solid #34425a;border-radius:12px}button,input{margin:6px;padding:8px}button{background:#1d2c44;color:white;border:1px solid #455979;border-radius:8px;cursor:pointer}#teams{display:flex;justify-content:center;gap:32px;margin:20px;font-weight:700}#status{min-height:24px}
+</style>
+<h1>AI ARENA</h1><p>TRON · 1 VS 1</p><input type="file" id="file" accept=".json"><button id="play">Pause</button><button id="restart">Restart</button><label>Speed <input id="speed" type="range" min="1" max="30" value="8"></label><button id="sound">Sound: Off</button><label>Volume <input id="volume" type="range" min="0" max="100" value="25"></label><div id="teams">Load replay.json to begin</div><canvas id="board" width="900" height="900"></canvas><p id="status" role="status"></p>
+<script>
+let replay=null,cursor=0,playing=true,last=null,paths={},explosions=[];
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),play=document.querySelector('#play');
+let audioContext=null,soundEnabled=false;
+const soundButton=document.querySelector('#sound');
+async function unlockAudio(){
+ if(!soundEnabled)return;
+ try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume()}
+ catch(err){soundEnabled=false;soundButton.textContent='Sound unavailable'}
+}
+soundButton.onclick=async()=>{soundEnabled=!soundEnabled;soundButton.textContent=soundEnabled?'Sound: On':'Sound: Off';await unlockAudio()};
+function explosionSound(){
+ if(!soundEnabled||!audioContext||audioContext.state!=='running')return;
+ const volume=Number(document.querySelector('#volume').value)/100;if(!volume)return;
+ const now=audioContext.currentTime,length=.45,buffer=audioContext.createBuffer(1,Math.ceil(audioContext.sampleRate*length),audioContext.sampleRate),samples=buffer.getChannelData(0);
+ for(let i=0;i<samples.length;i++)samples[i]=(Math.random()*2-1)*Math.exp(-i/samples.length*5);
+ const noise=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();noise.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(1800,now);filter.frequency.exponentialRampToValueAtTime(100,now+length);gain.gain.value=volume*.65;
+ noise.connect(filter);filter.connect(gain);gain.connect(audioContext.destination);noise.start(now);noise.onended=()=>{noise.disconnect();filter.disconnect();gain.disconnect()};
+ const osc=audioContext.createOscillator(),bass=audioContext.createGain();osc.frequency.setValueAtTime(110,now);osc.frequency.exponentialRampToValueAtTime(30,now+.3);bass.gain.setValueAtTime(volume*.5,now);bass.gain.exponentialRampToValueAtTime(.0001,now+.35);osc.connect(bass);bass.connect(audioContext.destination);osc.start(now);osc.stop(now+.36);osc.onended=()=>{osc.disconnect();bass.disconnect()};
+}
+// Soft low tones replace the previous high-pitched chirps.
+let lastTurnSound=-Infinity;
+function turnSound(riderIndex){
+ if(!soundEnabled||!audioContext||audioContext.state!=='running')return;
+ const now=audioContext.currentTime;
+ if(now-lastTurnSound<.12)return; // Shared cooldown prevents overlapping chatter.
+ const volume=Number(document.querySelector('#volume').value)/100;if(!volume)return;
+ lastTurnSound=now;
+ const osc=audioContext.createOscillator(),gain=audioContext.createGain();
+ osc.type='sine';osc.frequency.setValueAtTime(riderIndex===0?220:280,now);
+ osc.frequency.exponentialRampToValueAtTime(riderIndex===0?180:230,now+.085);
+ gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(volume*.065,now+.012);
+ gain.gain.exponentialRampToValueAtTime(.0001,now+.1);
+ osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+.11);
+ osc.onended=()=>{osc.disconnect();gain.disconnect()};
+}
+function playTurns(from,to){
+ for(let k=Math.floor(from)+1;k<=Math.floor(to);k++){
+  const current=replay.frames[k],next=replay.frames[k+1];if(!next)continue;
+  replay.config.riders.forEach((r,i)=>{
+   const before=current.actions?.[r.id]??r.heading,after=next.actions?.[r.id];
+   if(current.alive.includes(r.id)&&next.alive.includes(r.id)&&after!==undefined&&after!==before)turnSound(i);
+  });
+ }
+}
+function playDeaths(from,to){
+ for(let k=Math.floor(from)+1;k<=Math.floor(to);k++){
+  const previous=replay.frames[k-1],current=replay.frames[k];
+  for(const r of replay.config.riders){
+   if(previous.alive.includes(r.id)&&!current.alive.includes(r.id)){
+    explosions.push({position:previous.positions[r.id],color:r.color,age:0});explosionSound();
+   }
+  }
+ }
+}
+function setPlaying(value){playing=value;play.textContent=value?'Pause':'Play'}
+document.querySelector('#file').onchange=async e=>{if(!e.target.files[0])return;try{
+ const data=JSON.parse(await e.target.files[0].text());
+ if(!data.config||!Array.isArray(data.frames)||!data.frames.length||data.config.riders.length!==2)throw Error('Please load a two-rider replay. Generate a new replay with the updated teams.json.');
+ replay=data;cursor=0;last=null;paths={};explosions=[];
+ for(const r of replay.config.riders){paths[r.id]=[];for(const f of replay.frames){if(!f.alive.includes(r.id))break;paths[r.id].push(f.positions[r.id])}}
+ setPlaying(true);draw();
+}catch(err){document.querySelector('#status').textContent=err.message}};
+play.onclick=()=>{unlockAudio();setPlaying(!playing)};
+document.querySelector('#restart').onclick=()=>{cursor=0;last=null;explosions=[];lastTurnSound=-Infinity;setPlaying(true);draw()};
+// One full glow cycle every 2 seconds. Timestamp-based animation is frame-rate independent.
+function trailGlow(timeMs){return .5+.5*Math.sin(timeMs*Math.PI/1000)}
+function draw(){if(!replay)return;
+ const glow=trailGlow(performance.now());
+ const end=replay.frames.length-1,index=Math.min(Math.floor(cursor),end),fraction=cursor-index,c=replay.config,f=replay.frames[index],next=replay.frames[Math.min(index+1,end)];
+ const pad=22,sx=(canvas.width-pad*2)/c.width,sy=(canvas.height-pad*2)/c.height;
+ const point=p=>[pad+(p[0]+.5)*sx,pad+(p[1]+.5)*sy];
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.strokeStyle='#1b2940';ctx.lineWidth=1;ctx.strokeRect(pad,pad,canvas.width-pad*2,canvas.height-pad*2);
+ for(const r of c.riders){
+  const path=paths[r.id],count=Math.min(index+1,path.length);if(!count)continue;
+  ctx.beginPath();let p=point(path[0]);ctx.moveTo(...p);
+  for(let k=1;k<count;k++)ctx.lineTo(...point(path[k]));
+  // Interpolate only a valid committed move; dead riders retain their full trail.
+  if(f.alive.includes(r.id)&&next.alive.includes(r.id)&&index<end){const a=f.positions[r.id],b=next.positions[r.id];p=point([a[0]+(b[0]-a[0])*fraction,a[1]+(b[1]-a[1])*fraction]);ctx.lineTo(...p)}else p=point(path[count-1]);
+  // Wide translucent halo breathes; the solid center stays readable throughout.
+  const trailWidth=Math.min(sx,sy)*.3;
+  ctx.lineJoin='round';ctx.lineCap='round';ctx.strokeStyle=r.color;ctx.shadowColor=r.color;
+  ctx.lineWidth=trailWidth*(1.25+glow*.25);ctx.globalAlpha=.06+glow*.05;ctx.shadowBlur=3+glow*5;ctx.stroke();
+  ctx.lineWidth=trailWidth;ctx.globalAlpha=.9+glow*.05;ctx.shadowBlur=2+glow*3;ctx.stroke();
+  ctx.globalAlpha=1;ctx.shadowBlur=0;
+  if(f.alive.includes(r.id)){ctx.fillStyle=r.color;ctx.beginPath();ctx.arc(...p,Math.min(sx,sy)*.24,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(...p,Math.min(sx,sy)*.09,0,Math.PI*2);ctx.fill()}
+ }
+ for(const blast of explosions){
+  const [x,y]=point(blast.position),progress=blast.age/.75,fade=Math.max(0,1-progress);
+  ctx.globalAlpha=fade;ctx.strokeStyle=blast.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(x,y,8+progress*65,0,Math.PI*2);ctx.stroke();
+  for(let n=0;n<24;n++){const angle=n*Math.PI*2/24,reach=progress*(40+(n%5)*12);ctx.fillStyle=n%3===0?'#ffffff':blast.color;ctx.beginPath();ctx.arc(x+Math.cos(angle)*reach,y+Math.sin(angle)*reach,Math.max(.5,4*fade),0,Math.PI*2);ctx.fill()}
+  ctx.fillStyle='#fff4cf';ctx.globalAlpha=Math.max(0,1-progress*5);ctx.beginPath();ctx.arc(x,y,22+progress*30,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ }
+ // Draw the result last so it stays above trails and explosion particles.
+ if(index===end){
+  const winningTeam=c.riders.find(r=>r.id===replay.result.winner);
+  ctx.save();ctx.globalAlpha=1;ctx.shadowBlur=0;
+  const centerX=canvas.width/2,centerY=canvas.height/2;
+  ctx.fillStyle='rgba(8,13,24,.88)';ctx.fillRect(centerX-230,centerY-100,460,200);
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#eef4ff';
+  ctx.font='bold 34px system-ui';ctx.fillText(winningTeam?'WINNER':'DRAW',centerX,centerY-40);
+  if(winningTeam){ctx.fillStyle=winningTeam.color;ctx.font='bold 64px system-ui';ctx.fillText(winningTeam.team.toUpperCase(),centerX,centerY+30,420)}
+  ctx.restore();
+ }
+ const teams=document.querySelector('#teams');teams.replaceChildren();
+ for(const r of c.riders){const span=document.createElement('span');span.style.color=r.color;span.textContent=`${r.team} · ${r.algorithm}${f.alive.includes(r.id)?'':' · OUT'}`;teams.append(span)}
+ const winner=c.riders.find(r=>r.id===replay.result.winner);
+ document.querySelector('#status').textContent=index===end?`${winner?winner.team+' wins':'Draw'} · ${replay.result.reason}`:`Tick ${f.tick}`;
+}
+function loop(t){if(last===null)last=t;const elapsed=Math.min((t-last)/1000,.1);last=t;
+ if(replay&&playing){const previousCursor=cursor;cursor=Math.min(cursor+elapsed*Number(document.querySelector('#speed').value),replay.frames.length-1);playDeaths(previousCursor,cursor);playTurns(previousCursor,cursor);if(cursor===replay.frames.length-1)setPlaying(false)}
+ for(const blast of explosions)blast.age+=elapsed;explosions=explosions.filter(blast=>blast.age<.75);
+ draw();requestAnimationFrame(loop)
+}requestAnimationFrame(loop);
+</script></html>

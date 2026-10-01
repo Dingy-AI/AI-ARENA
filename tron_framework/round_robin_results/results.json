@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "settings": {
+    "games_per_pair": 2,
+    "base_seed": 42,
+    "width": 30,
+    "height": 30,
+    "max_ticks": 1200,
+    "win_points": 3,
+    "draw_points": 1
+  },
+  "teams": [
+    {
+      "id": "red_1",
+      "team": "Red",
+      "color": "#ff5268",
+      "algorithm": "aggressive"
+    },
+    {
+      "id": "blue_1",
+      "team": "Blue",
+      "color": "#55aaff",
+      "algorithm": "defensive"
+    },
+    {
+      "id": "green_1",
+      "team": "Green",
+      "color": "#63df91",
+      "algorithm": "territory"
+    },
+    {
+      "id": "yellow_1",
+      "team": "Yellow",
+      "color": "#ffda64",
+      "algorithm": "lookahead",
+      "depth": 6
+    }
+  ],
+  "standings": [
+    {
+      "id": "green_1",
+      "team": "Green",
+      "algorithm": "territory",
+      "played": 6,
+      "wins": 6,
+      "draws": 0,
+      "losses": 0,
+      "points": 18,
+      "rank": 1
+    },
+    {
+      "id": "red_1",
+      "team": "Red",
+      "algorithm": "aggressive",
+      "played": 6,
+      "wins": 4,
+      "draws": 0,
+      "losses": 2,
+      "points": 12,
+      "rank": 2
+    },
+    {
+      "id": "blue_1",
+      "team": "Blue",
+      "algorithm": "defensive",
+      "played": 6,
+      "wins": 1,
+      "draws": 0,
+      "losses": 5,
+      "points": 3,
+      "rank": 3
+    },
+    {
+      "id": "yellow_1",
+      "team": "Yellow",
+      "algorithm": "lookahead",
+      "played": 6,
+      "wins": 1,
+      "draws": 0,
+      "losses": 5,
+      "points": 3,
+      "rank": 3
+    }
+  ],
+  "matches": [
+    {
+      "match": 1,
+      "racers": [
+        "red_1",
+        "blue_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0001.json",
+      "winner": "red_1",
+      "reason": "survival",
+      "ticks": 165
+    },
+    {
+      "match": 2,
+      "racers": [
+        "red_1",
+        "blue_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0002.json",
+      "winner": "red_1",
+      "reason": "survival",
+      "ticks": 196
+    },
+    {
+      "match": 3,
+      "racers": [
+        "red_1",
+        "green_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0003.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 79
+    },
+    {
+      "match": 4,
+      "racers": [
+        "red_1",
+        "green_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0004.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 108
+    },
+    {
+      "match": 5,
+      "racers": [
+        "red_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0005.json",
+      "winner": "red_1",
+      "reason": "survival",
+      "ticks": 214
+    },
+    {
+      "match": 6,
+      "racers": [
+        "red_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0006.json",
+      "winner": "red_1",
+      "reason": "survival",
+      "ticks": 101
+    },
+    {
+      "match": 7,
+      "racers": [
+        "blue_1",
+        "green_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0007.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 37
+    },
+    {
+      "match": 8,
+      "racers": [
+        "blue_1",
+        "green_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0008.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 86
+    },
+    {
+      "match": 9,
+      "racers": [
+        "blue_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0009.json",
+      "winner": "blue_1",
+      "reason": "survival",
+      "ticks": 299
+    },
+    {
+      "match": 10,
+      "racers": [
+        "blue_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0010.json",
+      "winner": "yellow_1",
+      "reason": "survival",
+      "ticks": 236
+    },
+    {
+      "match": 11,
+      "racers": [
+        "green_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": false,
+      "replay": "replays/match_0011.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 109
+    },
+    {
+      "match": 12,
+      "racers": [
+        "green_1",
+        "yellow_1"
+      ],
+      "seed": 42,
+      "swapped": true,
+      "replay": "replays/match_0012.json",
+      "winner": "green_1",
+      "reason": "survival",
+      "ticks": 101
+    }
+  ]
+}
